@@ -9,11 +9,20 @@ register_bitfields! {
     /// Flags register
     FR [
         /// Transmit FIFO empty
-        TXFE OFFSET(7) NUMBITS(1) [],
+        TXFE OFFSET(7) NUMBITS(1) [
+            NotEmpty = 0,
+            Empty = 1
+        ],
         /// Transmit FIFO full
-        TXFF OFFSET(5) NUMBITS(1) [],
+        TXFF OFFSET(5) NUMBITS(1) [
+            NotFull = 0,
+            Full = 1
+        ],
         /// Receive FIFO empty
-        RXFE OFFSET(4) NUMBITS(1) [],
+        RXFE OFFSET(4) NUMBITS(1) [
+            NotEmpty = 0,
+            Empty = 1
+        ],
         /// Busy flag
         BUSY OFFSET(3) NUMBITS(1) []
     ],
@@ -33,19 +42,36 @@ register_bitfields! {
     /// Line control register
     LCRH [
         /// Word length
-        WL OFFSET(5) NUMBITS(2) [],
+        WL OFFSET(5) NUMBITS(2) [
+            FiveBits = 0b00,
+            SixBits = 0b01,
+            SevenBits = 0b10,
+            EightBits = 0b11
+        ],
         /// FIFO enable
-        FEN OFFSET(4) NUMBITS(1) []
+        FEN OFFSET(4) NUMBITS(1) [
+            Disabled = 0,
+            Enabled = 1
+        ]
     ],
 
     /// Control register
     CR [
         /// Uart enable
-        UARTEN OFFSET(0) NUMBITS(1) [],
+        UARTEN OFFSET(0) NUMBITS(1) [
+            Disabled = 0,
+            Enabled = 1
+        ],
         /// Transmitter enable
-        TXE OFFSET(8) NUMBITS(1) [],
+        TXE OFFSET(8) NUMBITS(1) [
+            Disabled = 0,
+            Enabled = 1
+        ],
         /// Receiver enable
-        RXE OFFSET(9) NUMBITS(1) []
+        RXE OFFSET(9) NUMBITS(1) [
+            Disabled = 0,
+            Enabled = 1
+        ]
     ],
 
     /// Interrupt clear register
@@ -79,15 +105,39 @@ pub struct Uart {
 impl Uart {
     pub fn take() -> Option<Self> {
         if !TAKEN.swap(true, Ordering::Relaxed) {
-            return Some(Uart {
+            let mut device = Self {
                 registers: unsafe { &mut *(0x3F201000 as *mut UartRegisters) },
-            });
+            };
+            device.init();
+            return Some(device);
         }
         None
     }
 
+    fn init(&mut self) {
+        self.flush();
+
+        self.registers.cr.write(CR::UARTEN::CLEAR);
+
+        self.registers.icr.write(ICR::ALL::CLEAR);
+
+        // Baudrate is currently fixed to 115200
+        // 48 MHz / 16 / 115200 = 26.0416
+        // fraction = 0.416 * 64 + 0.5 = 3
+        self.registers.ibrd.write(IBRD::BAUD_DIVINT.val(26));
+        self.registers.fbrd.write(IBRD::BAUD_DIVINT.val(3));
+
+        self.registers
+            .lcrh
+            .write(LCRH::WL::EightBits + LCRH::FEN::Enabled);
+
+        self.registers
+            .cr
+            .write(CR::RXE::Enabled + CR::TXE::Enabled + CR::UARTEN::Enabled)
+    }
+
     fn transmit_fifo_full(&self) -> bool {
-        self.registers.fr.read(FR::TXFF) == 1
+        self.registers.fr.matches_all(FR::TXFF::Full)
     }
 
     fn writec(&mut self, c: u8) {
@@ -104,5 +154,9 @@ impl Uart {
     pub fn writeln(&mut self, msg: &str) {
         self.write(msg);
         self.writec(b'\n')
+    }
+
+    pub fn flush(&self) {
+        while self.registers.fr.matches_all(FR::BUSY::SET) {}
     }
 }

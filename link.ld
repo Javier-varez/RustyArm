@@ -1,9 +1,11 @@
 
-ENTRY(_start)
+_entry_kernel_addr = 0x80000;
+
+ENTRY(_entry_kernel_addr)
  
 SECTIONS
 {
-    . = 0x80000;
+    . = _entry_kernel_addr;
     __start = .;
     __text_start = .;
     .text :
@@ -18,6 +20,7 @@ SECTIONS
     .rodata :
     {
         *(.rodata)
+        *(.rodata.*)
     }
     . = ALIGN(4096); /* align to page size */
     __rodata_end = .;

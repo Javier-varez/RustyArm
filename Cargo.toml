@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 register = "1.0.2"
 lazy_static = { version = "1.4", features = ["spin_no_std"] }
+cortex-a = "5.1"
 
 [build-dependencies]
 cc = "1.0"

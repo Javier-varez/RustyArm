@@ -1,4 +1,3 @@
-.section ".text.boot"
  
 .globl _start
 
@@ -8,6 +7,7 @@
 // x2 -> 0
 // x3 -> 0
 // x4 -> 32 bit kernel entry point, _start location
+.section .text.boot, "ax"
 _start:
         // set stack before our code
         ldr     x5, =_start

@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     Build::new()
         .file("entry.S")
-        .target("aarch64-unknown-none")
+        .target("aarch64-unknown-none-softfloat")
         .compiler("aarch64-none-elf-gcc")
         .compile("entry");
 
