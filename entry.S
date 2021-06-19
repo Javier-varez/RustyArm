@@ -23,8 +23,7 @@ _start:
         b inf_loop
  
 primary_cpu:
-
-        // clear bss
+clear_bss:
         ldr     x5, =__bss_start
         ldr     w6, =__bss_size
 bss_loop:

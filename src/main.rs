@@ -10,7 +10,7 @@ pub extern "C" fn kernel_main() -> ! {
     let mut uart = uart::Uart::take().unwrap();
 
     uart.writeln("Hi there! This should print a message in your shell!");
-    loop {}
+    panic!();
 }
 
 #[panic_handler]
