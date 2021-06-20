@@ -8,8 +8,8 @@ use core::panic::PanicInfo;
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
-    let mut uart = uart::Uart::take().unwrap();
-    let mut gpio = gpio::Gpio::take().unwrap();
+    let mut uart = unsafe { uart::Uart::steal() };
+    let mut gpio = unsafe { gpio::Gpio::steal() };
 
     gpio.configure_uart_alternate_function();
 

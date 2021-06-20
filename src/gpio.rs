@@ -61,6 +61,7 @@ pub struct Gpio {
 }
 
 impl Gpio {
+    #[allow(dead_code)]
     pub fn take() -> Option<Self> {
         if !TAKEN.swap(true, Ordering::Relaxed) {
             return Some(Self {
@@ -68,6 +69,12 @@ impl Gpio {
             });
         }
         None
+    }
+
+    pub unsafe fn steal() -> Self {
+        Self {
+            registers: &mut *(0x3F200000 as *mut GpioRegisters),
+        }
     }
 
     pub fn configure_uart_alternate_function(&mut self) {

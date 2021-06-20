@@ -103,6 +103,7 @@ pub struct Uart {
 }
 
 impl Uart {
+    #[allow(dead_code)]
     pub fn take() -> Option<Self> {
         if !TAKEN.swap(true, Ordering::Relaxed) {
             let mut device = Self {
@@ -112,6 +113,14 @@ impl Uart {
             return Some(device);
         }
         None
+    }
+
+    pub unsafe fn steal() -> Self {
+        let mut device = Self {
+            registers: &mut *(0x3F201000 as *mut UartRegisters),
+        };
+        device.init();
+        device
     }
 
     fn init(&mut self) {
