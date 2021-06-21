@@ -1,8 +1,29 @@
 use cortex_a::regs::{
-    RegisterReadWrite, CNTHCTL_EL2, CNTVOFF_EL2, ELR_EL2, HCR_EL2, SPSR_EL2, SP_EL1,
+    CurrentEL, RegisterReadOnly, RegisterReadWrite, CNTHCTL_EL2, CNTVOFF_EL2, ELR_EL2, ELR_EL3,
+    HCR_EL2, SCR_EL3, SPSR_EL2, SPSR_EL3, SP_EL1,
 };
 
-fn transition_to_el1() {
+fn transition_to_el2() -> ! {
+    SPSR_EL3.write(
+        SPSR_EL3::D::Masked
+            + SPSR_EL3::M::EL2h
+            + SPSR_EL3::A::Masked
+            + SPSR_EL3::I::Masked
+            + SPSR_EL3::F::Masked,
+    );
+    SCR_EL3.write(
+        SCR_EL3::RW::NextELIsAarch64
+            + SCR_EL3::NS::NonSecure
+            + SCR_EL3::SMD::SmcDisabled
+            + SCR_EL3::HCE::HvcDisabled,
+    );
+
+    // Reboot again
+    ELR_EL3.set(0x80000);
+    cortex_a::asm::eret();
+}
+
+fn transition_to_el1() -> ! {
     // Enable timer counter registers for EL1.
     CNTHCTL_EL2.write(CNTHCTL_EL2::EL1PCEN::SET + CNTHCTL_EL2::EL1PCTEN::SET);
 
@@ -19,15 +40,22 @@ fn transition_to_el1() {
 
     ELR_EL2.set(crate::kernel_main as *const () as u64);
     HCR_EL2.write(HCR_EL2::RW::EL1IsAarch64);
-
-    // This is wrong, we are trashing a bunch of data by doing setting the SP here...
-    // But let's try anyway!
     SP_EL1.set(0x80000);
 
     cortex_a::asm::eret();
 }
 
 #[no_mangle]
-pub extern "C" fn _start_kernel() {
-    transition_to_el1();
+pub extern "C" fn _start_kernel() -> ! {
+    match CurrentEL.read_as_enum(CurrentEL::EL).unwrap() {
+        CurrentEL::EL::Value::EL3 => {
+            transition_to_el2();
+        }
+        CurrentEL::EL::Value::EL2 => {
+            transition_to_el1();
+        }
+        _ => {
+            crate::kernel_main();
+        }
+    }
 }
