@@ -34,7 +34,7 @@ bss_loop:
  
 start_kernel:
         // jump to Rust code, should not return
-        bl      kernel_main
+        bl      _start_kernel
 
 inf_loop:
         b inf_loop

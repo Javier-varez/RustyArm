@@ -1,10 +1,14 @@
 #![no_std]
 #![no_main]
+#![feature(asm)]
 
+mod arch;
 mod gpio;
 mod uart;
 
+use core::fmt::Write;
 use core::panic::PanicInfo;
+use cortex_a::regs::{CurrentEL, RegisterReadOnly};
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
@@ -13,7 +17,9 @@ pub extern "C" fn kernel_main() -> ! {
 
     gpio.configure_uart_alternate_function();
 
-    uart.writeln("Hi there! This should print a message in your shell!");
+    let exception_level = CurrentEL.read(CurrentEL::EL);
+    write!(uart, "Running on exception level: {}\n", exception_level).unwrap();
+
     panic!();
 }
 

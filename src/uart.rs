@@ -169,3 +169,10 @@ impl Uart {
         while self.registers.fr.matches_all(FR::BUSY::SET) {}
     }
 }
+
+impl core::fmt::Write for Uart {
+    fn write_str(&mut self, msg: &str) -> Result<(), core::fmt::Error> {
+        self.write(msg);
+        Ok(())
+    }
+}
