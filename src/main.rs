@@ -24,6 +24,13 @@ pub extern "C" fn kernel_main() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    // Reinitialize the peripherals if really needed (maybe we paniced before reaching kernel_main)
+    let mut uart = unsafe { uart::Uart::steal() };
+    let mut gpio = unsafe { gpio::Gpio::steal() };
+
+    gpio.configure_uart_alternate_function();
+
+    write!(uart, "Panic! {:?}", info).unwrap();
     loop {}
 }
